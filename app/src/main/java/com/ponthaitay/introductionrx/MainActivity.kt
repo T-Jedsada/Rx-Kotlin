@@ -14,6 +14,7 @@ import io.reactivex.schedulers.Schedulers
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
@@ -54,6 +55,13 @@ class MainActivity : AppCompatActivity() {
                 })
 
         /**Scenario Rx*/
+
+        Observable.range(1, 10)
+                .concatMap { it -> Observable.just(it).delay(1, TimeUnit.SECONDS) }
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { Log.e("delay", "the element is $it\n") }
+
         // Loop array
         Observable.fromIterable(listTest).subscribe { Log.e(TAG, "the element is $it\n") }
 
