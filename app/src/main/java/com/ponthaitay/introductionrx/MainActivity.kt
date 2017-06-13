@@ -7,8 +7,12 @@ import com.ponthaitay.introductionrx.service.model.MovieDao
 import com.ponthaitay.introductionrx.service.model.UserInfoDao
 import com.ponthaitay.introductionrx.service.providesAPIs
 import io.reactivex.Observable
+import io.reactivex.ObservableSource
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
+import retrofit2.Call
+import retrofit2.Callback
 import retrofit2.Response
 
 class MainActivity : AppCompatActivity() {
@@ -19,67 +23,81 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        /**Scenario not Rx*/
+        // Loop array
+        for ((index, element) in listTest.withIndex()) {
+            println("the element at $index is $element")
+        }
+
+        for (element in listTest) {
+            println("the element is $element")
+        }
+
+        listTest.forEach { println("the element is $it") }
+
+        // unused Rx call APIs
+        providesAPIs("https://api.github.com/").getUserInfo("pondthaitay")
+                .enqueue(object : Callback<UserInfoDao> {
+                    override fun onResponse(call: Call<UserInfoDao>?, response: Response<UserInfoDao>?) {
+                        if (response?.isSuccessful!!) {
+                            println("unused Rx [case success] : " + response.body()?.name)
+                        } else {
+                            println("unused Rx [case error] : " + response.message())
+                        }
+                    }
+
+                    override fun onFailure(call: Call<UserInfoDao>?, t: Throwable?) {
+                        println("unused Rx [case error network] : " + t?.message)
+                    }
+                })
+
+        /**Scenario Rx*/
+        // Loop array
         Observable.fromIterable(listTest).subscribe { Log.e("loop array", it.toString()) }
 
         Observable.fromArray(listTest)
                 .map { retrieveListTest(it) }
                 .subscribe { Log.e("POND", it.toString()) }
 
-        // unused Rx call APIs
-//        providesAPIs("https://api.github.com/").getUserInfo("pondthaitay")
-//                .enqueue(object : Callback<UserInfoDao> {
-//                    override fun onResponse(call: Call<UserInfoDao>?, response: Response<UserInfoDao>?) {
-//                        if (response?.isSuccessful!!) {
-//                            println("unused Rx [case success] : " + response.body()?.name)
-//                        } else {
-//                            println("unused Rx [case error] : " + response.message())
-//                        }
-//                    }
-//
-//                    override fun onFailure(call: Call<UserInfoDao>?, t: Throwable?) {
-//                        println("unused Rx [case error network] : " + t?.message)
-//                    }
-//                })
-
-        // used Rx Call APIs
         // Rx operator -> flatMap [case 1]
-//        observableMovie().flatMap({ observableUserInfoGitHub() }, { r1, r2 -> r1.to(r2) })
-//                .subscribe({
-//                    println("operator flatMap [case 1] : " + it?.first?.body()?.result)
-//                    println("operator flatMap [case 1] : " + it?.second?.body()?.name)
-//                }, { it.printStackTrace() })
-//
-//        // Rx operator -> flatMap [case 2]
-//        observableMovieError().flatMap({ observableUserInfoGitHub() }, { r1, r2 -> r1.to(r2) })
-//                .subscribe({
-//                    println("operator flatMap [case 2] : " + it?.first?.body()?.result)
-//                    println("operator flatMap [case 2] : " + it?.second?.body()?.name)
-//                }, { it.printStackTrace() })
+        observableMovie().flatMap({ observableUserInfoGitHub() }, { r1, r2 -> r1.to(r2) })
+                .subscribe({
+                    println("operator flatMap [case 1] : " + it?.first?.body()?.result)
+                    println("operator flatMap [case 1] : " + it?.second?.body()?.name)
+                }, { it.printStackTrace() })
+
+        // Rx operator -> flatMap [case 2]
+        observableMovieError().flatMap({ observableUserInfoGitHub() }, { r1, r2 -> r1.to(r2) })
+                .subscribe({
+                    println("operator flatMap [case 2] : " + it?.first?.body()?.result)
+                    println("operator flatMap [case 2] : " + it?.second?.body()?.name)
+                }, { it.printStackTrace() })
 
         // Rx operator -> flatMap [case 3]
         observableMovie().flatMap({
-           t: Response<MovieDao>? -> if(t?.body() != null) Observable. else observableUserInfoGitHub()
-        }, { r1 : Response<MovieDao>?, r2 : Response<UserInfoDao>? -> r1.to(r2) })
+            if (it.body() != null) observableUserInfoGitHub()
+            else ObservableSource { it.onNext(Response.success(null)) }
+        }, { r1: Response<MovieDao>?, r2: Response<UserInfoDao>? -> r1.to(r2) })
                 .subscribe({
-//                    println("operator flatMap [case 3] : " + it?.first?.body()?.result)
-//                    println("operator flatMap [case 3] : " + it?.second?.body()?.name)
+                    println("operator flatMap [case 3] : " + it?.first?.body()?.result)
+                    println("operator flatMap [case 3] : " + it?.second?.body()?.name)
                 }, { it.printStackTrace() })
 
 
-//        // Rx operator -> zip
-//        Observable.zip(observableMovie(), observableUserInfoGitHub(), BiFunction<Response<MovieDao>, Response<UserInfoDao>,
-//                Pair<Response<MovieDao>, Response<UserInfoDao>>> { r1, r2 -> r1.to(r2) })
-//                .subscribe({
-//                    println("operator zip : " + it?.first?.body()?.result)
-//                    println("operator zip : " + it?.second?.body()?.name)
-//                }, { it.printStackTrace() })
-//
-//        // Rx operator -> map
-//        observableUserInfoGitHub().map {
-//            println("operator map before retrieveUserInfo : " + it?.body()?.company + "\t" + it?.body()?.email)
-//            retrieveUserInfo(it)
-//        }.subscribe({ println("operator map after retrieveUserInfo : " + it?.body()?.company + "\t" + it?.body()?.email) },
-//                { it.printStackTrace() })
+        // Rx operator -> zip
+        Observable.zip(observableMovie(), observableUserInfoGitHub(), BiFunction<Response<MovieDao>, Response<UserInfoDao>,
+                Pair<Response<MovieDao>, Response<UserInfoDao>>> { r1, r2 -> r1.to(r2) })
+                .subscribe({
+                    println("operator zip : " + it?.first?.body()?.result)
+                    println("operator zip : " + it?.second?.body()?.name)
+                }, { it.printStackTrace() })
+
+        // Rx operator -> map
+        observableUserInfoGitHub().map {
+            println("operator map before retrieveUserInfo : " + it?.body()?.company + "\t" + it?.body()?.email)
+            retrieveUserInfo(it)
+        }.subscribe({ println("operator map after retrieveUserInfo : " + it?.body()?.company + "\t" + it?.body()?.email) },
+                { it.printStackTrace() })
     }
 
     private fun observableUserInfoGitHub() = providesAPIs("https://api.github.com/")
