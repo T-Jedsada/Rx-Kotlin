@@ -129,6 +129,7 @@ class MainActivity : AppCompatActivity() {
     private fun retrieveUserInfo(response: Response<UserInfoDao>?): Response<UserInfoDao>? {
         response?.body()?.company = "20Scoops"
         response?.body()?.email = "jt@20Scoops.com"
+        response?.body()?.bio = "Android Developer"
         return response
     }
 
