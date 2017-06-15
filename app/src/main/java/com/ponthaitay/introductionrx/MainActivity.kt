@@ -11,6 +11,8 @@ import io.reactivex.ObservableSource
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
+import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.uiThread
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -37,6 +39,16 @@ class MainActivity : AppCompatActivity() {
 
         listTest.forEach { Log.e(TAG, "the element is $it\n") }
 
+        // NetworkOnMainThreadException
+        val callUserInfo = providesAPIs("https://api.github.com/").getUserInfo("pondthaitay")
+
+        doAsync {
+            val execute = callUserInfo.execute()
+            uiThread {
+                Log.e(TAG, "doAsync : " + execute.body()?.name)
+            }
+        }
+
         // unused Rx call APIs
         providesAPIs("https://api.github.com/").getUserInfo("pondthaitay")
                 .enqueue(object : Callback<UserInfoDao> {
@@ -61,6 +73,12 @@ class MainActivity : AppCompatActivity() {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe { Log.e("delay", "the element is $it\n") }
 
+
+        Observable.fromCallable { callUserInfo.execute() }
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { Log.e(TAG, "execute : " + "$it") }
+
         // Loop array
         Observable.fromIterable(listTest).subscribe { Log.e(TAG, "the element is $it\n") }
 
@@ -69,14 +87,14 @@ class MainActivity : AppCompatActivity() {
                 .subscribe { Log.e(TAG, "the element is $it\n") }
 
         // Rx operator -> flatMap [case 1]
-        observableMovie().flatMap({ observableUserInfoGitHub() }, { r1, r2 -> r1.to(r2) })
+        observableMovie().flatMap({ observableUserInfoGitHub() }, { r1, r2 -> r1 to r2 })
                 .subscribe({
                     Log.e(TAG, "operator flatMap [case 1] : " + it?.first?.body()?.result)
                     Log.e(TAG, "operator flatMap [case 1] : " + it?.second?.body()?.name)
                 }, { it.printStackTrace() })
 
         // Rx operator -> flatMap [case 2]
-        observableMovieError().flatMap({ observableUserInfoGitHub() }, { r1, r2 -> r1.to(r2) })
+        observableMovieError().flatMap({ observableUserInfoGitHub() }, { r1, r2 -> r1 to r2 })
                 .subscribe({
                     Log.e(TAG, "operator flatMap [case 2] : " + it?.first?.body()?.result)
                     Log.e(TAG, "operator flatMap [case 2] : " + it?.second?.body()?.name)
@@ -86,7 +104,7 @@ class MainActivity : AppCompatActivity() {
         observableMovie().flatMap({
             if (it.body() != null) ObservableSource { it.onNext(Response.success(null)) }
             else observableUserInfoGitHub()
-        }, { r1: Response<MovieDao>?, r2: Response<UserInfoDao>? -> r1.to(r2) })
+        }, { r1: Response<MovieDao>?, r2: Response<UserInfoDao>? -> r1 to r2 })
                 .subscribe({
                     Log.e(TAG, "operator flatMap [case 3] : " + it?.first?.body()?.result)
                     Log.e(TAG, "operator flatMap [case 3] : " + it?.second?.body()?.name)
@@ -94,7 +112,7 @@ class MainActivity : AppCompatActivity() {
 
         // Rx operator -> zip
         Observable.zip(observableMovie(), observableUserInfoGitHub(), BiFunction<Response<MovieDao>, Response<UserInfoDao>,
-                Pair<Response<MovieDao>, Response<UserInfoDao>>> { r1, r2 -> r1.to(r2) })
+                Pair<Response<MovieDao>, Response<UserInfoDao>>> { r1, r2 -> r1 to r2 })
                 .subscribe({
                     Log.e(TAG, "operator zip : " + it?.first?.body()?.result)
                     Log.e(TAG, "operator zip : " + it?.second?.body()?.name)
