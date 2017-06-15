@@ -47,6 +47,11 @@ class MainActivity : AppCompatActivity() {
             uiThread { Log.e(TAG, "${response.body()}") }
         }
 
+//        Observable.fromCallable { callUserInfo.execute() }
+//                .subscribeOn(Schedulers.io())
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribe { Log.e(TAG, "execute : " + "$it") }
+
         // unused Rx call APIs
         providesAPIs("https://api.github.com/").getUserInfo("pondthaitay")
                 .enqueue(object : Callback<UserInfoDao> {
@@ -70,12 +75,6 @@ class MainActivity : AppCompatActivity() {
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe { Log.e("delay", "the element is $it\n") }
-
-
-//        Observable.fromCallable { callUserInfo.execute() }
-//                .subscribeOn(Schedulers.io())
-//                .observeOn(AndroidSchedulers.mainThread())
-//                .subscribe { Log.e(TAG, "execute : " + "$it") }
 
         // Loop array
         Observable.fromIterable(listTest).subscribe { Log.e(TAG, "the element is $it\n") }
