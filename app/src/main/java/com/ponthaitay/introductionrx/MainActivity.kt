@@ -43,10 +43,8 @@ class MainActivity : AppCompatActivity() {
         val callUserInfo = providesAPIs("https://api.github.com/").getUserInfo("pondthaitay")
 
         doAsync {
-            val execute = callUserInfo.execute()
-            uiThread {
-                Log.e(TAG, "doAsync : " + execute.body()?.name)
-            }
+            val response = callUserInfo.execute()
+            uiThread { Log.e(TAG, "${response.body()}") }
         }
 
         // unused Rx call APIs
@@ -74,10 +72,10 @@ class MainActivity : AppCompatActivity() {
                 .subscribe { Log.e("delay", "the element is $it\n") }
 
 
-        Observable.fromCallable { callUserInfo.execute() }
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { Log.e(TAG, "execute : " + "$it") }
+//        Observable.fromCallable { callUserInfo.execute() }
+//                .subscribeOn(Schedulers.io())
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribe { Log.e(TAG, "execute : " + "$it") }
 
         // Loop array
         Observable.fromIterable(listTest).subscribe { Log.e(TAG, "the element is $it\n") }
