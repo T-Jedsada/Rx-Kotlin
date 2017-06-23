@@ -121,10 +121,21 @@ class MainActivity : AppCompatActivity() {
             retrieveUserInfo(it)
         }.subscribe({ Log.e(TAG, "operator map after retrieveUserInfo : " + it?.body()?.company + "\t" + it?.body()?.email) },
                 { it.printStackTrace() })
+
+        observableUserInfoGitHub()
+                .flatMap({ observableUserInfoGitHub(it.body()?.name!!) },
+                        { r1, r2 -> r1 to r2 })
+                .subscribe()
     }
 
     private fun observableUserInfoGitHub() = providesAPIs("https://api.github.com/")
             .getUserInfoGitHub("pondthaitay")
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .onErrorReturn { Response.success(null) }
+
+    private fun observableUserInfoGitHub(username: String) = providesAPIs("https://api.github.com/")
+            .getUserInfoGitHub(username)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .onErrorReturn { Response.success(null) }
